@@ -82,7 +82,7 @@ mod stdp {
     }
 }
 
-pub struct Quote;
+struct Quote;
 
 impl Parser for Quote {
     type Dest = String;
@@ -107,7 +107,7 @@ fn _quote() -> Quote {
     Quote
 }
 
-pub struct Unquote;
+struct Unquote;
 
 impl Parser for Unquote {
     type Dest = String;
@@ -138,7 +138,7 @@ fn unquote() -> Unquote {
     Unquote
 }
 
-pub struct UnquoteNoEsc;
+struct UnquoteNoEsc;
 
 impl Parser for UnquoteNoEsc {
     type Dest = String;
@@ -833,8 +833,9 @@ impl Parsable for _Status {
 /// Пара 'сокращённое название предмета' - 'его описание'
 #[derive(Debug, Clone, PartialEq)]
 pub struct AssetDsc {
-    // `dsc` aka `description`
+    /// id предмета
     pub id: String,
+    /// Описание
     pub dsc: String,
 }
 
@@ -866,7 +867,9 @@ impl Parsable for AssetDsc {
 /// Сведение о предмете в некотором количестве
 #[derive(Debug, Clone, PartialEq)]
 pub struct Backet {
+    /// id предмета
     pub asset_id: String,
+    /// Количество
     pub count: NonZeroU32,
 }
 
@@ -897,7 +900,9 @@ impl Parsable for Backet {
 /// Фиатные деньги конкретного пользователя
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserCash {
+    /// user id
     pub user_id: String,
+    /// кэш
     pub count: NonZeroU32,
 }
 
@@ -931,7 +936,9 @@ impl Parsable for UserCash {
 /// [Backet] конкретного пользователя
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserBacket {
+    /// user id
     pub user_id: String,
+    /// карзина пользователя
     pub backet: Backet,
 }
 
@@ -965,7 +972,9 @@ impl Parsable for UserBacket {
 /// [Бакеты](Backet) конкретного пользователя
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserBackets {
+    /// user id
     pub user_id: String,
+    /// корзины
     pub backets: Vec<Backet>,
 }
 impl Parsable for UserBackets {
@@ -1011,6 +1020,7 @@ impl Parsable for Announcements {
     }
 }
 
+/// Распарсить строку существующим парсером P
 pub fn just_parse<'a, P>(input: &'a str) -> Result<(&'a str, P), ()>
 where
     P: Parsable,
@@ -1021,78 +1031,110 @@ where
 /// Все виды логов
 #[derive(Debug, Clone, PartialEq)]
 pub enum LogKind {
+    /// Системные логи
     System(SystemLogKind),
+    /// Логи приложения
     App(AppLogKind),
 }
 
 /// Все виды [системных](LogKind) логов
 #[derive(Debug, Clone, PartialEq)]
 pub enum SystemLogKind {
+    /// Ошибки в системном логе
     Error(SystemLogErrorKind),
+    /// Трассировочная информация в системном логе
     Trace(SystemLogTraceKind),
 }
 
 /// Trace [системы](SystemLogKind)
 #[derive(Debug, Clone, PartialEq)]
 pub enum SystemLogTraceKind {
+    /// Трассировка запросов
     SendRequest(String),
+    /// Трассировка ответов
     GetResponse(String),
 }
 
 /// Error [системы](SystemLogKind)
 #[derive(Debug, Clone, PartialEq)]
 pub enum SystemLogErrorKind {
+    /// Ошибки сети
     NetworkError(String),
+    /// Ошибки доступа
     AccessDenied(String),
 }
 
 /// Все виды [логов приложения](LogKind) логов
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppLogKind {
+    /// Логи ошибок
     Error(AppLogErrorKind),
+    /// Логи трассировки
     Trace(AppLogTraceKind),
+    /// Логи журнала
     Journal(AppLogJournalKind),
 }
 
 /// Error [приложения](AppLogKind)
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppLogErrorKind {
+    /// Ошибка отсутствия информации
     LackOf(String),
+    /// Системная ошибка
     SystemError(String),
 }
 
-// подсказка: а поля не слишком много места на стэке занимают?
 /// Trace [приложения](AppLogKind)
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppLogTraceKind {
+    /// Трассировка соединений
     Connect(AuthData),
+    /// Трассировка запроса
     SendRequest(String),
+    /// Трассировка корзин пользователя
     Check(Announcements),
+    /// Трассировка ответа
     GetResponse(String),
 }
 
 /// Журнал [приложения](AppLogKind), самые высокоуровневые события
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppLogJournalKind {
+    /// Создание пользователя
     CreateUser {
+        /// id пользователя
         user_id: String,
+        /// средства
         authorized_capital: NonZeroU32,
     },
+    /// Удаление пользователя
     DeleteUser {
+        /// id пользователя
         user_id: String,
     },
+    /// Регистрация актива
     RegisterAsset {
+        /// id счета
         asset_id: String,
+        /// id пользователя
         user_id: String,
+        /// ликвидность
         liquidity: NonZeroU32,
     },
+    /// Удаление актива
     UnregisterAsset {
+        /// id счета
         asset_id: String,
+        /// id пользователя
         user_id: String,
     },
+    /// Взнос
     DepositCash(UserCash),
+    /// Трата
     WithdrawCash(UserCash),
+    /// Покупка актива
     BuyAsset(UserBacket),
+    /// Продажа
     SellAsset(UserBacket),
 }
 
@@ -1476,7 +1518,9 @@ impl Parsable for LogKind {
 /// Строка логов, [лог](AppLogKind) с `request_id`
 #[derive(Debug, Clone, PartialEq)]
 pub struct LogLine {
+    /// Вид лога
     pub kind: LogKind,
+    /// id запроса
     pub request_id: NonZeroU32,
 }
 
@@ -1499,8 +1543,10 @@ impl Parsable for LogLine {
     }
 }
 
+/// Парсер строки лога
 pub struct LogLineParser;
 impl LogLineParser {
+    /// Метод парсинга строки
     pub fn parse<'a>(input: &'a str) -> Result<(&'a str, LogLine), ()> {
         LogLine::parser().parse(&input)
     }
