@@ -1,11 +1,10 @@
 pub mod parse;
 
-use std::num::NonZeroU32;
-use std::io::{Read, BufReader, BufRead, Lines};
+use std::io::{BufRead, BufReader, Lines, Read};
 use std::iter::FilterMap;
+use std::num::NonZeroU32;
 
 use parse::*;
-
 
 pub enum ReadMode {
     /// Режим чтения из логов всего подряд
@@ -19,7 +18,7 @@ pub enum ReadMode {
 /// Итератор, на выходе которого - строки распарсенной структуры данных
 #[derive(Debug)]
 struct LogIterator<R: Read> {
-    lines: FilterMap<Lines<BufReader<R>>, fn(Result<String, std::io::Error>) ->Option<String>>,
+    lines: FilterMap<Lines<BufReader<R>>, fn(Result<String, std::io::Error>) -> Option<String>>,
 }
 
 impl<R: Read> LogIterator<R> {
@@ -27,10 +26,10 @@ impl<R: Read> LogIterator<R> {
         Self {
             lines: BufReader::with_capacity(4096, stream)
                 .lines()
-                .filter_map(|line|{
+                .filter_map(|line| {
                     let line = line.ok().as_ref().map(|val| val.trim().to_string())?;
                     if line.is_empty() {
-                        return None
+                        return None;
                     }
                     Some(line)
                 }),
@@ -50,25 +49,43 @@ impl<R: Read> Iterator for LogIterator<R> {
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
 pub fn read_log<R: Read>(stream: R, mode: ReadMode, request_ids: Vec<NonZeroU32>) -> Vec<LogLine> {
     let logs = LogIterator::new(stream);
-    let collected: Vec<LogLine> = logs.filter_map(|log|{
-        let is_filter_req_id = !request_ids.is_empty() && !request_ids.iter().any(|ids| *ids == log.request_id);
-        if is_filter_req_id {
-            return None;
-        }
+    let collected: Vec<LogLine> = logs
+        .filter_map(|log| {
+            let is_filter_req_id =
+                !request_ids.is_empty() && !request_ids.iter().any(|ids| *ids == log.request_id);
+            if is_filter_req_id {
+                return None;
+            }
 
-        match (&mode, &log.kind) {
-            (ReadMode::All, _) => Some(log),
-            (ReadMode::Errors, LogKind::System(SystemLogKind::Error(_))) => Some(log),
-            (ReadMode::Errors, LogKind::App(AppLogKind::Error(_))) => Some(log),
-            (ReadMode::Exchanges, LogKind::App(AppLogKind::Journal(AppLogJournalKind::BuyAsset(_)))) => Some(log),
-            (ReadMode::Exchanges, LogKind::App(AppLogKind::Journal(AppLogJournalKind::SellAsset(_)))) => Some(log),
-            (ReadMode::Exchanges, LogKind::App(AppLogKind::Journal(AppLogJournalKind::CreateUser{..}))) => Some(log),
-            (ReadMode::Exchanges, LogKind::App(AppLogKind::Journal(AppLogJournalKind::RegisterAsset{..}))) => Some(log),
-            (ReadMode::Exchanges, LogKind::App(AppLogKind::Journal(AppLogJournalKind::WithdrawCash(_)))) => Some(log),
-            _ => None,
-        }
-    }).collect();
-    
+            match (&mode, &log.kind) {
+                (ReadMode::All, _) => Some(log),
+                (ReadMode::Errors, LogKind::System(SystemLogKind::Error(_))) => Some(log),
+                (ReadMode::Errors, LogKind::App(AppLogKind::Error(_))) => Some(log),
+                (
+                    ReadMode::Exchanges,
+                    LogKind::App(AppLogKind::Journal(AppLogJournalKind::BuyAsset(_))),
+                ) => Some(log),
+                (
+                    ReadMode::Exchanges,
+                    LogKind::App(AppLogKind::Journal(AppLogJournalKind::SellAsset(_))),
+                ) => Some(log),
+                (
+                    ReadMode::Exchanges,
+                    LogKind::App(AppLogKind::Journal(AppLogJournalKind::CreateUser { .. })),
+                ) => Some(log),
+                (
+                    ReadMode::Exchanges,
+                    LogKind::App(AppLogKind::Journal(AppLogJournalKind::RegisterAsset { .. })),
+                ) => Some(log),
+                (
+                    ReadMode::Exchanges,
+                    LogKind::App(AppLogKind::Journal(AppLogJournalKind::WithdrawCash(_))),
+                ) => Some(log),
+                _ => None,
+            }
+        })
+        .collect();
+
     collected
 }
 
@@ -143,18 +160,19 @@ App::Trace GetResponse "Ok" requestid=10
 App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"milk","count":5,},} requestid=10
         "#;
 
-
     #[test]
     fn test_all() {
         let cursor1 = Cursor::new(SOURCE1);
         assert_eq!(read_log(cursor1, ReadMode::All, vec![]).len(), 1);
-        
+
         let cursor = Cursor::new(SOURCE);
         let all_parsed = read_log(cursor, ReadMode::All, vec![]);
         println!("all parsed:");
-        all_parsed.iter().for_each(|parsed| println!("  {:?}", parsed));
+        all_parsed
+            .iter()
+            .for_each(|parsed| println!("  {:?}", parsed));
         // 2 для начала и конца строки (чтобы первая и последняя кавычки на отдельных строках были)
         // второе число - число пустых строк, которые оставлены для удобства чтения
-        assert_eq!(all_parsed.len(), SOURCE.lines().count()-2-7);
+        assert_eq!(all_parsed.len(), SOURCE.lines().count() - 2 - 7);
     }
 }

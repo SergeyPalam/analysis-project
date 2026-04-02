@@ -54,7 +54,8 @@ use std::fs::File;
 fn main() {
     println!("Placeholder для экспериментов с cli");
 
-    let parsing_demo = r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
+    let parsing_demo =
+        r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
     let announcements = match analysis::parse::just_parse::<Announcements>(parsing_demo) {
         Ok(val) => val.1,
         Err(_) => {
@@ -62,7 +63,7 @@ fn main() {
             return;
         }
     };
-    
+
     println!("demo-parsed: {:?}", announcements);
 
     let args = std::env::args().collect::<Vec<_>>();
@@ -74,7 +75,11 @@ fn main() {
             return;
         }
     };
-    println!("Trying opening file '{}' from directory '{}'", filename, current_dir.to_string_lossy());
+    println!(
+        "Trying opening file '{}' from directory '{}'",
+        filename,
+        current_dir.to_string_lossy()
+    );
     let file = match File::open(&filename) {
         Ok(f) => f,
         Err(e) => {
@@ -87,4 +92,3 @@ fn main() {
     println!("got logs:");
     logs.iter().for_each(|parsed| println!("  {:?}", parsed));
 }
-
